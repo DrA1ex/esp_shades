@@ -1,0 +1,8 @@
+[submodule "src/lib"]
+	path = src/lib
+	url = https://github.com/DrA1ex/esp_iot_framework
+	branch = main
+[submodule "www/src/lib"]
+	path = www/src/lib
+	url = https://github.com/DrA1ex/web-iot-framework
+	branch = main

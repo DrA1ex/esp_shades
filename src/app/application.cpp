@@ -107,7 +107,7 @@ void Application::_setup() {
 
     ws_server->register_data_request(PacketType::GET_CONFIG, _metadata->data.config);
     ws_server->register_command(PacketType::RESTART, [this] { _bootstrap->restart(); });
-    ws_server->register_command(PacketType::HOMING, [this] { homing(); });
+    ws_server->register_command(PacketType::HOMING, [this] { homing_async(); });
 }
 
 void Application::event_loop() {
@@ -147,10 +147,10 @@ void Application::emergency_stop() {
     change_state(AppState::STAND_BY);
 }
 
-void Application::homing() {
+Future<void> Application::homing_async() {
     if (_state != AppState::STAND_BY) {
-        D_PRINTF("Homing forbidden for state: %s", __debug_enum_str(_state));
-        return;
+        D_PRINTF("Homing forbidden for state: %s\r\n", __debug_enum_str(_state));
+        return Future<void>::errored();
     }
 
     change_state(AppState::HOMING);
@@ -158,52 +158,83 @@ void Application::homing() {
     position = 0;
     homed = false;
 
-    _stepper->enable();
-    _stepper->reset();
-
     auto &cfg = config().stepper_config;
 
-    // First homing step
-    _stepper->setMaxSpeed(cfg.homing_speed);
-    _stepper->setTarget(-cfg.homing_steps_max);
+    return Future<void>::successful()
+        .then<bool>([this, &cfg](auto) {
+            D_PRINT("Homing: First step");
 
-    if (!_homing_move()) {
-        D_PRINT("Homing failed! Movement limit exceeded");
-        return _homing_end();
-    }
+            _stepper->enable();
 
-    // Go up a little
-    endstop_pressed = false;
-    _stepper->setTarget(cfg.homing_steps);
-    _homing_move();
+            // First homing step
+            _stepper->reset();
+            _stepper->setMaxSpeed(cfg.homing_speed);
+            _stepper->setTarget(-cfg.homing_steps_max);
 
-    // Second homing step
-    _stepper->setMaxSpeed(cfg.homing_speed_second);
-    _stepper->setTarget(-cfg.homing_steps);
-    if (!_homing_move()) {
-        D_PRINT("Homing failed! Second movement limit exceeded");
-        return _homing_end();
-    }
+            return homing_move_async();
+        })
+        .then<bool>([this, &cfg](auto &f) {
+            if (!f.result()) {
+                D_PRINT("Homing failed! Movement limit exceeded");
+                return Future<bool>::errored();
+            }
 
-    D_PRINT("Homing success!");
-    homed = true;
-    _homing_end();
+            D_PRINT("Homing: Rewind");
+
+            // Go up a little
+            _stepper->reset();
+            _stepper->setTarget(cfg.homing_steps);
+
+            return homing_move_async(false);
+        })
+        .then<bool>([this, &cfg](auto &f) {
+            if (f.result()) {
+                D_PRINT("Homing failed! Endstop did not reset");
+                return Future<bool>::errored();
+            }
+
+            D_PRINT("Homing: Second step");
+
+            // Second homing step
+            _stepper->reset();
+            _stepper->setMaxSpeed(cfg.homing_speed_second);
+            _stepper->setTarget(-cfg.homing_steps * 1.5);
+
+            return homing_move_async();
+        })
+        .then<void>([this](auto &f) {
+            if (!f.result()) {
+                D_PRINT("Homing failed! Second movement limit exceeded");
+                return Future<void>::errored();
+            }
+
+            homed = true;
+            D_PRINT("Homing success!");
+
+            return Future<void>::successful();
+        })
+        .finally([this] {
+            _stepper->brake();
+            _stepper->reset();
+            _stepper->disable();
+
+            change_state(AppState::STAND_BY);
+        });
 }
 
-bool Application::_homing_move() {
-    while (!endstop_pressed && _stepper->tick()) {
-        _endstop->handle();
-        delay(1);
-    }
+Future<bool> Application::homing_move_async(bool detect_endstop) {
+    auto promise = Promise<bool>::create();
+    auto timer_id = _bootstrap->timer().add_interval([=](auto) {
+        if (promise->finished()) return;
 
-    return endstop_pressed;
-}
-void Application::_homing_end() {
-    _stepper->brake();
-    _stepper->reset();
-    _stepper->disable();
+        if ((endstop_pressed && detect_endstop) || !_stepper->tick()) {
+            promise->set_success(endstop_pressed);
+        }
+    }, APP_SERVICE_LOOP_INTERVAL);
 
-    change_state(AppState::STAND_BY);
+    return Future{promise}.finally([this, timer_id](auto) {
+        _bootstrap->timer().clear_interval(timer_id);
+    });
 }
 
 void Application::endstop_triggered() {

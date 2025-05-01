@@ -5,6 +5,7 @@
 #include "lib/bootstrap.h"
 #include "lib/misc/button.h"
 #include "lib/misc/ntp_time.h"
+#include "lib/async/promise.h"
 
 #include "config.h"
 #include "metadata.h"
@@ -29,8 +30,8 @@ class Application {
     std::map<const AbstractParameter *, PacketType> _parameter_to_packet{};
 
 public:
-    Config &config() const { return _bootstrap->config(); }
-    SysConfig &sys_config() const { return config().sys_config; }
+    [[nodiscard]] Config &config() const { return _bootstrap->config(); }
+    [[nodiscard]] SysConfig &sys_config() const { return config().sys_config; }
 
     void begin();
     void event_loop();
@@ -49,23 +50,20 @@ protected:
     void change_state(AppState s);
 
     void emergency_stop();
-    void homing();
+
+    Future<void> homing_async();
+    Future<bool> homing_move_async(bool detect_endstop = true);
 
     void endstop_triggered();
     void endstop_release();
 
 private:
-    bool _homing_move();
-    void _homing_end();
-
     void _setup();
 
     void _bootstrap_state_changed(void *sender, BootstrapState state, void *arg);
 
     void _app_loop();
     void _service_loop();
-
-    uint16_t _brightness();
 
     void _handle_property_change(const AbstractParameter *param);
 };

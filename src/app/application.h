@@ -1,0 +1,55 @@
+#pragma once
+
+#include "lib/bootstrap.h"
+#include "lib/misc/button.h"
+#include "lib/misc/ntp_time.h"
+
+#include "config.h"
+#include "metadata.h"
+#include "cmd.h"
+#include "misc/night_mode.h"
+
+#include <GyverStepper2.h>
+
+class Application {
+    std::unique_ptr<Bootstrap<Config, PacketType>> _bootstrap = nullptr;
+    std::unique_ptr<ConfigMetadata> _metadata = nullptr;
+    std::unique_ptr<NightModeManager> _night_mode_manager = nullptr;
+    std::unique_ptr<NtpTime> _ntp_time = nullptr;
+    std::unique_ptr<Button> _endstop = nullptr;
+    std::unique_ptr<GStepper2<STEPPER4WIRE>> _stepper = nullptr;
+
+    bool _initialized = false;
+
+    unsigned long _state_change_time = 0;
+    AppState _state = AppState::UNINITIALIZED;
+
+    std::map<const AbstractParameter *, PacketType> _parameter_to_packet{};
+
+public:
+    Config &config() const { return _bootstrap->config(); }
+    SysConfig &sys_config() const { return config().sys_config; }
+
+    void begin();
+    void event_loop();
+
+    void change_state(AppState s);
+    void set_power(bool on, bool skip_animation = false);
+
+    void load();
+    void update();
+
+    void restart() { _bootstrap->restart(); }
+
+private:
+    void _setup();
+
+    void _bootstrap_state_changed(void *sender, BootstrapState state, void *arg);
+
+    void _app_loop();
+    void _service_loop();
+
+    uint16_t _brightness();
+
+    void _handle_property_change(const AbstractParameter *param);
+};

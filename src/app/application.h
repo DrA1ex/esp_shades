@@ -1,5 +1,7 @@
 #pragma once
 
+#include "sys_constants.h"
+
 #include "lib/bootstrap.h"
 #include "lib/misc/button.h"
 #include "lib/misc/ntp_time.h"
@@ -33,15 +35,29 @@ public:
     void begin();
     void event_loop();
 
-    void change_state(AppState s);
-    void set_power(bool on, bool skip_animation = false);
-
     void load();
     void update();
 
     void restart() { _bootstrap->restart(); }
 
+protected:
+    bool homed = false;
+    int32_t position = 0;
+
+    volatile bool endstop_pressed = false;
+
+    void change_state(AppState s);
+
+    void emergency_stop();
+    void homing();
+
+    void endstop_triggered();
+    void endstop_release();
+
 private:
+    bool _homing_move();
+    void _homing_end();
+
     void _setup();
 
     void _bootstrap_state_changed(void *sender, BootstrapState state, void *arg);

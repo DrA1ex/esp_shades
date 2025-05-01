@@ -11,8 +11,8 @@ MAKE_ENUM_AUTO(AppState, uint8_t,
     UNINITIALIZED,
     INITIALIZATION,
     STAND_BY,
-    TURNING_ON,
-    TURNING_OFF
+    HOMING,
+    MOVING
 );
 
 typedef char ConfigString[CONFIG_STRING_SIZE];
@@ -52,9 +52,34 @@ struct __attribute ((packed)) NightModeConfig {
     uint32_t end_time = (uint32_t) 10 * 60 * 60;
 };
 
+struct __attribute ((packed)) StepperCalibrationConfig {
+    uint16_t offset = 0;
+    int32_t open_position = 4096 * 10;
+};
+
+struct __attribute ((packed)) StepperConfig {
+    bool reverse = false;
+
+    uint16_t resolution = 4096;
+
+    uint16_t open_speed = 300;
+    uint16_t close_speed = 500;
+    uint16_t acceleration = 300;
+
+    uint16_t homing_speed = 200;
+    uint16_t homing_speed_second = 100;
+
+    int32_t homing_steps = 500;
+    int32_t homing_steps_max = 4096 * 10;
+};
+
 struct __attribute ((packed)) Config {
     bool power = true;
 
+    StepperCalibrationConfig stepper_calibration{};
+
+    StepperConfig stepper_config{};
     NightModeConfig night_mode{};
+
     SysConfig sys_config{};
 };

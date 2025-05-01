@@ -39,4 +39,6 @@ MAKE_ENUM(PacketType, uint8_t,
 
     GET_CONFIG, 0xa0,
     RESTART, 0xb0,
+
+    HOMING, 0xc0,
 )

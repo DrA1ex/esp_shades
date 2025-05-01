@@ -51,8 +51,9 @@ void Application::begin() {
         }, BOOTSTRAP_SERVICE_LOOP_INTERVAL);
     });
 
+    auto &stepper_cfg = config().stepper_config;
     _stepper = std::make_unique<GStepper2<STEPPER4WIRE>>(
-        4096,
+        (uint16_t) stepper_cfg.resolution,
         sys_config.stepper_pin_1,
         sys_config.stepper_pin_2,
         sys_config.stepper_pin_3,
@@ -60,17 +61,13 @@ void Application::begin() {
         sys_config.stepper_pin_en
     );
 
-    _endstop = std::make_unique<Button>(sys_config.endstop_pin, sys_config.endstop_high_state);
-    _endstop->set_on_hold([this](auto) {
-        _stepper->enable();
-        _stepper->reset();
-        _stepper->setTarget(1000);
-    });
+    _stepper->setAcceleration(stepper_cfg.acceleration);
+    _stepper->reverse(stepper_cfg.reverse);
 
-    _endstop->set_on_hold_release([this](auto) {
-        _stepper->brake();
-        _stepper->disable();
-    });
+    _endstop = std::make_unique<Button>(sys_config.endstop_pin, sys_config.endstop_high_state);
+    _endstop->set_hold_repeat(false);
+    _endstop->set_on_hold([this](auto) { endstop_triggered(); });
+    _endstop->set_on_hold_release([this](auto) { endstop_release(); });
 
     _bootstrap->timer().add_interval([this](auto) { _service_loop(); }, APP_SERVICE_LOOP_INTERVAL);
 
@@ -110,6 +107,7 @@ void Application::_setup() {
 
     ws_server->register_data_request(PacketType::GET_CONFIG, _metadata->data.config);
     ws_server->register_command(PacketType::RESTART, [this] { _bootstrap->restart(); });
+    ws_server->register_command(PacketType::HOMING, [this] { homing(); });
 }
 
 void Application::event_loop() {
@@ -144,21 +142,88 @@ void Application::change_state(AppState s) {
     D_PRINTF("Change app state: %s\r\n", __debug_enum_str(s));
 }
 
-void Application::set_power(bool on, bool skip_animation) {
-    config().power = on;
-
-    D_PRINTF("Turning Power: %s\r\n", on ? "ON" : "OFF");
-    if (!skip_animation && _state != AppState::INITIALIZATION) {
-        change_state(on ? AppState::TURNING_ON : AppState::TURNING_OFF);
-    } else {
-        change_state(AppState::STAND_BY);
-        load();
-    }
-
-    _bootstrap->save_changes();
-    NotificationBus::get().notify_parameter_changed(this, _metadata->power.get_parameter());
+void Application::emergency_stop() {
+    _stepper->brake();
+    change_state(AppState::STAND_BY);
 }
 
+void Application::homing() {
+    if (_state != AppState::STAND_BY) {
+        D_PRINTF("Homing forbidden for state: %s", __debug_enum_str(_state));
+        return;
+    }
+
+    change_state(AppState::HOMING);
+
+    position = 0;
+    homed = false;
+
+    _stepper->enable();
+    _stepper->reset();
+
+    auto &cfg = config().stepper_config;
+
+    // First homing step
+    _stepper->setMaxSpeed(cfg.homing_speed);
+    _stepper->setTarget(-cfg.homing_steps_max);
+
+    if (!_homing_move()) {
+        D_PRINT("Homing failed! Movement limit exceeded");
+        return _homing_end();
+    }
+
+    // Go up a little
+    endstop_pressed = false;
+    _stepper->setTarget(cfg.homing_steps);
+    _homing_move();
+
+    // Second homing step
+    _stepper->setMaxSpeed(cfg.homing_speed_second);
+    _stepper->setTarget(-cfg.homing_steps);
+    if (!_homing_move()) {
+        D_PRINT("Homing failed! Second movement limit exceeded");
+        return _homing_end();
+    }
+
+    D_PRINT("Homing success!");
+    homed = true;
+    _homing_end();
+}
+
+bool Application::_homing_move() {
+    while (!endstop_pressed && _stepper->tick()) {
+        _endstop->handle();
+        delay(1);
+    }
+
+    return endstop_pressed;
+}
+void Application::_homing_end() {
+    _stepper->brake();
+    _stepper->reset();
+    _stepper->disable();
+
+    change_state(AppState::STAND_BY);
+}
+
+void Application::endstop_triggered() {
+    if (endstop_pressed) return;
+
+    endstop_pressed = true;
+    D_PRINT("Endstop triggered!");
+
+    if (_state == AppState::MOVING) {
+        D_PRINT("Endstop triggered during movement!");
+        emergency_stop();
+    }
+}
+
+void Application::endstop_release() {
+    if (!endstop_pressed) return;
+
+    endstop_pressed = false;
+    D_PRINT("Endstop released!");
+}
 
 void Application::_app_loop() {
 #if defined(DEBUG) && DEBUG_LEVEL <= __DEBUG_LEVEL_VERBOSE

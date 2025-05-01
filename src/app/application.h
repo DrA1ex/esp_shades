@@ -22,7 +22,10 @@ class Application {
     std::unique_ptr<Button> _endstop = nullptr;
     std::unique_ptr<GStepper2<STEPPER4WIRE>> _stepper = nullptr;
 
+    RuntimeInfo _runtime_info{};
+
     bool _initialized = false;
+    volatile bool _endstop_pressed = false;
 
     unsigned long _state_change_time = 0;
     AppState _state = AppState::UNINITIALIZED;
@@ -42,11 +45,6 @@ public:
     void restart() { _bootstrap->restart(); }
 
 protected:
-    bool homed = false;
-    int32_t position = 0;
-
-    volatile bool endstop_pressed = false;
-
     void change_state(AppState s);
 
     void emergency_stop();
@@ -59,6 +57,8 @@ protected:
 
 private:
     void _setup();
+
+    void _notify_changes();
 
     void _bootstrap_state_changed(void *sender, BootstrapState state, void *arg);
 

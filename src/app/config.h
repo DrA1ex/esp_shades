@@ -83,3 +83,8 @@ struct __attribute ((packed)) Config {
 
     SysConfig sys_config{};
 };
+
+struct __attribute ((packed)) RuntimeInfo {
+    bool homed = false;
+    int32_t position = 0;
+};

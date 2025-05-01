@@ -8,6 +8,23 @@
 
 DECLARE_META_TYPE(AppMetaProperty, PacketType)
 
+DECLARE_META(StepperCalibrationConfigMeta, AppMetaProperty,
+    MEMBER(Parameter<uint16_t>, offset),
+    MEMBER(Parameter<int32_t>, open_position),
+)
+
+DECLARE_META(StepperConfigMeta, AppMetaProperty,
+    MEMBER(Parameter<bool>, reverse),
+    MEMBER(Parameter<uint16_t>, resolution),
+    MEMBER(Parameter<uint16_t>, open_speed),
+    MEMBER(Parameter<uint16_t>, close_speed),
+    MEMBER(Parameter<uint16_t>, acceleration),
+    MEMBER(Parameter<uint16_t>, homing_speed),
+    MEMBER(Parameter<uint16_t>, homing_speed_second),
+    MEMBER(Parameter<int32_t>, homing_steps),
+    MEMBER(Parameter<int32_t>, homing_steps_max),
+)
+
 DECLARE_META(NightModeConfigMeta, AppMetaProperty,
     MEMBER(Parameter<bool>, enabled),
     MEMBER(Parameter<uint32_t>, start_time),
@@ -38,22 +55,75 @@ DECLARE_META(SysConfigMeta, AppMetaProperty,
 
 DECLARE_META(DataConfigMeta, AppMetaProperty,
     MEMBER(ComplexParameter<Config>, config),
+
+    MEMBER(Parameter<bool>, homed),
+    MEMBER(Parameter<int32_t>, position),
 )
 
 DECLARE_META(ConfigMetadata, AppMetaProperty,
     MEMBER(Parameter<bool>, power),
+    SUB_TYPE(StepperCalibrationConfigMeta, stepper_calibration),
+    SUB_TYPE(StepperConfigMeta, stepper_config),
     SUB_TYPE(NightModeConfigMeta, night_mode),
     SUB_TYPE(SysConfigMeta, sys_config),
 
     SUB_TYPE(DataConfigMeta, data),
 )
 
-inline ConfigMetadata build_metadata(Config &config) {
+inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) {
     return {
         .power = {
             PacketType::POWER,
             MQTT_TOPIC_POWER, MQTT_OUT_TOPIC_POWER,
             &config.power
+        },
+        .stepper_calibration = {
+            .offset = {
+                PacketType::STEPPER_CALIBRATION_OFFSET,
+                &config.stepper_calibration.offset
+            },
+            .open_position = {
+                PacketType::STEPPER_CALIBRATION_OPEN_POSITION,
+                &config.stepper_calibration.open_position
+            }
+        },
+        .stepper_config = {
+            .reverse = {
+                PacketType::STEPPER_CONFIG_REVERSE,
+                &config.stepper_config.reverse
+            },
+            .resolution = {
+                PacketType::STEPPER_CONFIG_RESOLUTION,
+                &config.stepper_config.resolution
+            },
+            .open_speed = {
+                PacketType::STEPPER_CONFIG_OPEN_SPEED,
+                &config.stepper_config.open_speed
+            },
+            .close_speed = {
+                PacketType::STEPPER_CONFIG_CLOSE_SPEED,
+                &config.stepper_config.close_speed
+            },
+            .acceleration = {
+                PacketType::STEPPER_CONFIG_ACCELERATION,
+                &config.stepper_config.acceleration
+            },
+            .homing_speed = {
+                PacketType::STEPPER_CONFIG_HOMING_SPEED,
+                &config.stepper_config.homing_speed
+            },
+            .homing_speed_second = {
+                PacketType::STEPPER_CONFIG_HOMING_SPEED_SECOND,
+                &config.stepper_config.homing_speed_second
+            },
+            .homing_steps = {
+                PacketType::STEPPER_CONFIG_HOMING_STEPS,
+                &config.stepper_config.homing_steps
+            },
+            .homing_steps_max = {
+                PacketType::STEPPER_CONFIG_HOMING_STEPS_MAX,
+                &config.stepper_config.homing_steps_max
+            }
         },
         .night_mode = {
             .enabled = {
@@ -151,6 +221,13 @@ inline ConfigMetadata build_metadata(Config &config) {
 
         .data{
             .config = ComplexParameter(&config),
+
+            .homed = Parameter(&runtime_info.homed),
+            .position = {
+                PacketType::POSITION,
+                MQTT_TOPIC_POSITION, MQTT_OUT_TOPIC_POSITION,
+                &runtime_info.position
+            },
         },
     };
 }

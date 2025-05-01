@@ -83,7 +83,7 @@ void Application::_setup() {
     auto &ws_server = _bootstrap->ws_server();
     auto &mqtt_server = _bootstrap->mqtt_server();
 
-    _metadata = std::make_unique<ConfigMetadata>(build_metadata(config()));
+    _metadata = std::make_unique<ConfigMetadata>(build_metadata(config(), _runtime_info));
     _metadata->visit([this, &ws_server, &mqtt_server](AbstractPropertyMeta *meta) {
         auto binary_protocol = (BinaryProtocolMeta<PacketType> *) meta->get_binary_protocol();
         if (binary_protocol->packet_type.has_value()) {
@@ -105,9 +105,18 @@ void Application::_setup() {
         }
     });
 
+    ws_server->register_notification(PacketType::HOMED, _metadata->data.homed);
+
     ws_server->register_data_request(PacketType::GET_CONFIG, _metadata->data.config);
+
     ws_server->register_command(PacketType::RESTART, [this] { _bootstrap->restart(); });
     ws_server->register_command(PacketType::HOMING, [this] { homing_async(); });
+}
+
+void Application::_notify_changes() {
+    _bootstrap->ws_server()->send_notification(PacketType::POSITION);
+    _bootstrap->ws_server()->send_notification(PacketType::HOMED);
+    _bootstrap->mqtt_server()->send_notification(MQTT_OUT_TOPIC_POSITION);
 }
 
 void Application::event_loop() {
@@ -155,8 +164,10 @@ Future<void> Application::homing_async() {
 
     change_state(AppState::HOMING);
 
-    position = 0;
-    homed = false;
+    _runtime_info.position = 0;
+    _runtime_info.homed = false;
+
+    _notify_changes();
 
     auto &cfg = config().stepper_config;
 
@@ -208,7 +219,7 @@ Future<void> Application::homing_async() {
                 return Future<void>::errored();
             }
 
-            homed = true;
+            _runtime_info.homed = true;
             D_PRINT("Homing success!");
 
             return Future<void>::successful();
@@ -217,6 +228,8 @@ Future<void> Application::homing_async() {
             _stepper->brake();
             _stepper->reset();
             _stepper->disable();
+
+            _notify_changes();
 
             change_state(AppState::STAND_BY);
         });
@@ -227,8 +240,8 @@ Future<bool> Application::homing_move_async(bool detect_endstop) {
     auto timer_id = _bootstrap->timer().add_interval([=](auto) {
         if (promise->finished()) return;
 
-        if ((endstop_pressed && detect_endstop) || !_stepper->tick()) {
-            promise->set_success(endstop_pressed);
+        if ((_endstop_pressed && detect_endstop) || !_stepper->tick()) {
+            promise->set_success(_endstop_pressed);
         }
     }, APP_SERVICE_LOOP_INTERVAL);
 
@@ -238,9 +251,9 @@ Future<bool> Application::homing_move_async(bool detect_endstop) {
 }
 
 void Application::endstop_triggered() {
-    if (endstop_pressed) return;
+    if (_endstop_pressed) return;
 
-    endstop_pressed = true;
+    _endstop_pressed = true;
     D_PRINT("Endstop triggered!");
 
     if (_state == AppState::MOVING) {
@@ -250,9 +263,9 @@ void Application::endstop_triggered() {
 }
 
 void Application::endstop_release() {
-    if (!endstop_pressed) return;
+    if (!_endstop_pressed) return;
 
-    endstop_pressed = false;
+    _endstop_pressed = false;
     D_PRINT("Endstop released!");
 }
 

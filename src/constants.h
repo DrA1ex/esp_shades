@@ -8,7 +8,8 @@
 
 #define WIFI_CONNECTION_CHECK_INTERVAL          (5000u)                 // Interval (ms) between Wi-Fi connection check
 #define WIFI_MAX_CONNECTION_ATTEMPT_INTERVAL    (120000u)               // Max time (ms) to wait for Wi-Fi connection before switch to AP mode
-                                                                        // 0 - Newer switch to AP mode
+
+// 0 - Newer switch to AP mode
 
 #define MDNS_NAME                               "esp_shade"
 
@@ -31,10 +32,12 @@
 
 #define MQTT_PREFIX                             ""
 #define MQTT_TOPIC_POWER                        MQTT_PREFIX "/power"
+#define MQTT_TOPIC_POSITION                     MQTT_PREFIX "/position"
 #define MQTT_TOPIC_NIGHT_MODE                   MQTT_PREFIX "/night_mode"
 
 #define MQTT_OUT_PREFIX                         MQTT_PREFIX "/out"
 #define MQTT_OUT_TOPIC_POWER                    MQTT_OUT_PREFIX "/power"
+#define MQTT_OUT_TOPIC_POSITION                 MQTT_OUT_PREFIX "/position"
 #define MQTT_OUT_TOPIC_NIGHT_MODE               MQTT_OUT_PREFIX "/night_mode"
 
 #include "_override/credentials.h"

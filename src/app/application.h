@@ -42,6 +42,10 @@ public:
     void load();
     void update();
 
+    void open();
+    void close();
+    void move_to(int32_t pos);
+
     void restart() { _bootstrap->restart(); }
 
 protected:

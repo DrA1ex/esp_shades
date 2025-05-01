@@ -111,6 +111,8 @@ void Application::_setup() {
 
     ws_server->register_command(PacketType::RESTART, [this] { _bootstrap->restart(); });
     ws_server->register_command(PacketType::HOMING, [this] { homing_async(); });
+    ws_server->register_command(PacketType::OPEN, [this] { open(); });
+    ws_server->register_command(PacketType::CLOSE, [this] { close(); });
 }
 
 void Application::_notify_changes() {
@@ -149,6 +151,35 @@ void Application::change_state(AppState s) {
     _state_change_time = millis();
     _state = s;
     D_PRINTF("Change app state: %s\r\n", __debug_enum_str(s));
+}
+
+void Application::open() {
+    move_to(config().stepper_calibration.open_position);
+}
+
+void Application::close() {
+    move_to(0);
+}
+void Application::move_to(int32_t pos) {
+    if (!_runtime_info.homed) {
+        D_PRINT("Must home first!");
+        return;
+    }
+
+    pos += config().stepper_calibration.offset;
+    D_PRINTF("Moving to position: %d\r\n", pos);
+
+    if (_state == AppState::STAND_BY) {
+        _stepper->enable();
+        change_state(AppState::MOVING);
+    }
+
+
+    _stepper->setMaxSpeed(pos > _runtime_info.position
+                          ? config().stepper_config.close_speed
+                          : config().stepper_config.open_speed);
+
+    _stepper->setTarget(pos);
 }
 
 void Application::emergency_stop() {
@@ -293,7 +324,14 @@ void Application::_app_loop() {
 
 void Application::_service_loop() {
     _endstop->handle();
-    _stepper->tick();
+    bool moving = _stepper->tick();
+
+    if (_state == AppState::MOVING && !moving) {
+        _stepper->brake();
+        _stepper->disable();
+
+        change_state(AppState::STAND_BY);
+    }
 }
 
 void Application::_bootstrap_state_changed(void *sender, BootstrapState state, void *arg) {

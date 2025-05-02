@@ -61,6 +61,7 @@ MAKE_ENUM(PacketType, uint8_t,
     SYS_CONFIG_ENDSTOP_HIGH_STATE, 0x82,
 
     GET_CONFIG, 0xa0,
+    GET_STATE, 0xa1,
     RESTART, 0xb0,
 
     HOMING, 0xc0,

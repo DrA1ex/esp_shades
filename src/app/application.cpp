@@ -108,6 +108,7 @@ void Application::_setup() {
     ws_server->register_notification(PacketType::HOMED, _metadata->data.homed);
 
     ws_server->register_data_request(PacketType::GET_CONFIG, _metadata->data.config);
+    ws_server->register_data_request(PacketType::GET_STATE, _metadata->data.state);
 
     ws_server->register_command(PacketType::RESTART, [this] { _bootstrap->restart(); });
     ws_server->register_command(PacketType::HOMING, [this] { homing_async(); });

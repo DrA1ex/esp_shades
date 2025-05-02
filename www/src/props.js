@@ -51,7 +51,7 @@ export const PropertyConfig = [{
         {key: "stepperConfig.homingStepsMax", title: "Max Homing Steps", type: "int", kind: "Int32", cmd: PacketType.STEPPER_CONFIG_HOMING_STEPS_MAX},
 
         {type: "title", label: "Actions", extra: {m_top: true}},
-        {key: "apply_stepper_config", type: "button", label: "Save Configuration"},
+        {key: "apply_stepper_config", type: "button", label: "Apply"},
     ]
 }, {
     key: "system", section: "System Settings", collapse: true, props: [
@@ -88,6 +88,6 @@ export const PropertyConfig = [{
         {key: "sysConfig.mqttPassword", title: "Password", type: "password", kind: "FixedString", maxLength: 32, cmd: PacketType.SYS_CONFIG_MQTT_PASSWORD},
 
         {type: "title", label: "Actions", extra: {m_top: true}},
-        {key: "apply_sys_config", type: "button", label: "Save Configuration"},
+        {key: "apply_sys_config", type: "button", label: "Apply"},
     ]
 }];

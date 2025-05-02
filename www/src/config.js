@@ -11,7 +11,7 @@ export class Config extends AppConfigBase {
     stepperConfig;
     sysConfig;
 
-    status = {homed: false, position: 0};
+    status;
 
     constructor() {
         super(PropertyConfig);
@@ -23,6 +23,16 @@ export class Config extends AppConfigBase {
     }
 
     get cmd() {return PacketType.GET_CONFIG;}
+
+    async load(ws) {
+        const [_, statePacket] = await Promise.all([
+            super.load(ws),
+            ws.request(PacketType.GET_STATE),
+        ]);
+
+        this.status = this.#parseState(statePacket.parser());
+    }
+
 
     parse(parser) {
         this.power = parser.readBoolean();
@@ -77,5 +87,12 @@ export class Config extends AppConfigBase {
             mqttUser: parser.readFixedString(32),
             mqttPassword: parser.readFixedString(32)
         };
+    }
+
+    #parseState(parser) {
+        return {
+            homed: parser.readBoolean(),
+            position: parser.readInt32(),
+        }
     }
 }

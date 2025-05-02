@@ -55,6 +55,7 @@ DECLARE_META(SysConfigMeta, AppMetaProperty,
 
 DECLARE_META(DataConfigMeta, AppMetaProperty,
     MEMBER(ComplexParameter<Config>, config),
+    MEMBER(ComplexParameter<RuntimeInfo>, state),
 
     MEMBER(Parameter<bool>, homed),
     MEMBER(Parameter<int32_t>, position),
@@ -221,6 +222,7 @@ inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) 
 
         .data{
             .config = ComplexParameter(&config),
+            .state = ComplexParameter(&runtime_info),
 
             .homed = Parameter(&runtime_info.homed),
             .position = {

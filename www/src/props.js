@@ -26,8 +26,6 @@ export const PropertyConfig = [{
     ]
 }, {
     key: "general", section: "General", props: [
-        {key: "power", title: "Power", type: "trigger", kind: "Boolean", cmd: PacketType.POWER},
-
         {type: "title", label: "Actions", extra: {m_top: true}},
         {key: "do_homing", type: "button", label: "Homing", visibleIf: "status.homed", visibilityInvert: true, cmd: PacketType.HOMING},
         {key: "do_open", type: "button", label: "Open", visibleIf: "status.homed", cmd: PacketType.OPEN},

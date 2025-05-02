@@ -74,8 +74,6 @@ struct __attribute ((packed)) StepperConfig {
 };
 
 struct __attribute ((packed)) Config {
-    bool power = true;
-
     StepperCalibrationConfig stepper_calibration{};
     NightModeConfig night_mode{};
 

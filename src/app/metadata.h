@@ -63,7 +63,6 @@ DECLARE_META(DataConfigMeta, AppMetaProperty,
 )
 
 DECLARE_META(ConfigMetadata, AppMetaProperty,
-    MEMBER(Parameter<bool>, power),
     SUB_TYPE(StepperCalibrationConfigMeta, stepper_calibration),
     SUB_TYPE(StepperConfigMeta, stepper_config),
     SUB_TYPE(NightModeConfigMeta, night_mode),
@@ -74,11 +73,6 @@ DECLARE_META(ConfigMetadata, AppMetaProperty,
 
 inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) {
     return {
-        .power = {
-            PacketType::POWER,
-            MQTT_TOPIC_POWER, MQTT_OUT_TOPIC_POWER,
-            &config.power
-        },
         .stepper_calibration = {
             .offset = {
                 PacketType::STEPPER_CALIBRATION_OFFSET,

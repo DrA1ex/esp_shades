@@ -5,7 +5,6 @@ import {PacketType} from "./cmd.js";
 
 
 export class Config extends AppConfigBase {
-    power;
     nightMode;
     stepperCalibration;
     stepperConfig;
@@ -35,8 +34,6 @@ export class Config extends AppConfigBase {
 
 
     parse(parser) {
-        this.power = parser.readBoolean();
-
         this.stepperCalibration = {
             offset: parser.readUint16(),
             openPosition: parser.readInt32()

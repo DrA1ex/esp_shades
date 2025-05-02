@@ -154,13 +154,21 @@ void Application::change_state(AppState s) {
 }
 
 void Application::open() {
-    move_to(config().stepper_calibration.open_position);
+    move_to(100);
 }
 
 void Application::close() {
     move_to(0);
 }
-void Application::move_to(int32_t pos) {
+
+void Application::move_to(float value) {
+    auto k = std::min(std::max(value, 0.0f), 100.f) / 100.f;
+    if (config().stepper_config.reverse) k = 1.f - k;
+
+    move_to_step(config().stepper_calibration.open_position * k);
+}
+
+void Application::move_to_step(int32_t pos) {
     if (!_runtime_info.homed) {
         D_PRINT("Must home first!");
         return;
@@ -184,6 +192,7 @@ void Application::move_to(int32_t pos) {
 
 void Application::emergency_stop() {
     _stepper->brake();
+    _stepper->disable();
     change_state(AppState::STAND_BY);
 }
 
@@ -204,14 +213,23 @@ Future<void> Application::homing_async() {
 
     return Future<void>::successful()
         .then<bool>([this, &cfg](auto) {
-            D_PRINT("Homing: First step");
+            D_PRINT("Homing: Preparing");
+
 
             _stepper->enable();
+            _stepper->reset();
+
+            // Go down a little
+            _stepper->setMaxSpeed(cfg.homing_speed);
+            _stepper->setTarget(cfg.homing_steps / 2);
+
+            return homing_move_async(false);
+        })
+        .then<bool>([this, &cfg](auto) {
+            D_PRINT("Homing: First step");
 
             // First homing step
-            _stepper->reset();
-            _stepper->setMaxSpeed(cfg.homing_speed);
-            _stepper->setTarget(-cfg.homing_steps_max);
+            _stepper->setTarget(-cfg.homing_steps_max, RELATIVE);
 
             return homing_move_async();
         })
@@ -222,10 +240,10 @@ Future<void> Application::homing_async() {
             }
 
             D_PRINT("Homing: Rewind");
+            _stepper->brake();
 
             // Go up a little
-            _stepper->reset();
-            _stepper->setTarget(cfg.homing_steps);
+            _stepper->setTarget(cfg.homing_steps,RELATIVE);
 
             return homing_move_async(false);
         })
@@ -238,9 +256,8 @@ Future<void> Application::homing_async() {
             D_PRINT("Homing: Second step");
 
             // Second homing step
-            _stepper->reset();
             _stepper->setMaxSpeed(cfg.homing_speed_second);
-            _stepper->setTarget(-cfg.homing_steps * 1.5);
+            _stepper->setTarget((int32_t) (-1.5 * cfg.homing_steps),RELATIVE);
 
             return homing_move_async();
         })
@@ -250,10 +267,18 @@ Future<void> Application::homing_async() {
                 return Future<void>::errored();
             }
 
+            _stepper->brake();
             _runtime_info.homed = true;
             D_PRINT("Homing success!");
 
             return Future<void>::successful();
+        }).then<void>([this, &cfg](auto) {
+            D_PRINT("Applying offset...");
+
+            _stepper->setMaxSpeed(cfg.homing_speed);
+            _stepper->setTarget(config().stepper_calibration.offset, RELATIVE);
+
+            return homing_move_async(false);
         })
         .finally([this] {
             _stepper->brake();
@@ -276,6 +301,7 @@ Future<bool> Application::homing_move_async(bool detect_endstop) {
         }
     }, APP_SERVICE_LOOP_INTERVAL);
 
+    //TODO: Promise destructed before timer fired up?
     return Future{promise}.finally([this, timer_id](auto) {
         _bootstrap->timer().clear_interval(timer_id);
     });

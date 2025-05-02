@@ -44,7 +44,8 @@ public:
 
     void open();
     void close();
-    void move_to(int32_t pos);
+
+    void move_to(float value);
 
     void restart() { _bootstrap->restart(); }
 
@@ -52,6 +53,7 @@ protected:
     void change_state(AppState s);
 
     void emergency_stop();
+    void move_to_step(int32_t pos);
 
     Future<void> homing_async();
     Future<bool> homing_move_async(bool detect_endstop = true);

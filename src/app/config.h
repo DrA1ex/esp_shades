@@ -53,7 +53,7 @@ struct __attribute ((packed)) NightModeConfig {
 };
 
 struct __attribute ((packed)) StepperCalibrationConfig {
-    uint16_t offset = 0;
+    uint16_t offset = 100;
     int32_t open_position = 4096 * 10;
 };
 
@@ -69,7 +69,7 @@ struct __attribute ((packed)) StepperConfig {
     uint16_t homing_speed = 200;
     uint16_t homing_speed_second = 100;
 
-    int32_t homing_steps = 500;
+    int32_t homing_steps = 400;
     int32_t homing_steps_max = 4096 * 10;
 };
 
@@ -77,10 +77,9 @@ struct __attribute ((packed)) Config {
     bool power = true;
 
     StepperCalibrationConfig stepper_calibration{};
-
-    StepperConfig stepper_config{};
     NightModeConfig night_mode{};
 
+    StepperConfig stepper_config{};
     SysConfig sys_config{};
 };
 

@@ -181,6 +181,11 @@ void Application::move_to_step(int32_t pos) {
         return;
     }
 
+    if (pos == _stepper->getCurrent()) {
+        D_PRINT("Moving cancelled: already in position");
+        return;
+    }
+
     D_PRINTF("Moving to position: %d\r\n", pos);
 
     if (_state == AppState::STAND_BY) {
@@ -202,7 +207,6 @@ void Application::move_to_step(int32_t pos) {
 void Application::emergency_stop() {
     _stepper->brake();
     _stepper->disable();
-
 
 
     if (_state != AppState::HOMING) {

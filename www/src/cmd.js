@@ -65,4 +65,5 @@ export const PacketType = {
     HOMING: 0xc0,
     OPEN: 0xc1,
     CLOSE: 0xc2,
+    STOP: 0xc3,
 };

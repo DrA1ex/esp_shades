@@ -30,6 +30,8 @@ export const PropertyConfig = [{
         {key: "do_homing", type: "button", label: "Homing", visibleIf: "status.homed", visibilityInvert: true, cmd: PacketType.HOMING},
         {key: "do_open", type: "button", label: "Open", visibleIf: "status.homed", cmd: PacketType.OPEN},
         {key: "do_close", type: "button", label: "Close", visibleIf: "status.homed", cmd: PacketType.CLOSE},
+
+        {key: "do_stop", type: "button", label: "Stop", visibleIf: "status.homed", cmd: PacketType.STOP},
     ],
 }, {
     key: "calibration", section: "Calibration", collapse: true, props: [

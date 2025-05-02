@@ -120,6 +120,7 @@ void Application::_setup() {
     ws_server->register_command(PacketType::HOMING, [this] { homing_async(); });
     ws_server->register_command(PacketType::OPEN, [this] { open(); });
     ws_server->register_command(PacketType::CLOSE, [this] { close(); });
+    ws_server->register_command(PacketType::STOP, [this] { emergency_stop(); });
 }
 
 void Application::_notify_changes() {

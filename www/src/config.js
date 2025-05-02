@@ -24,14 +24,11 @@ export class Config extends AppConfigBase {
     get cmd() {return PacketType.GET_CONFIG;}
 
     async load(ws) {
-        const [_, statePacket] = await Promise.all([
-            super.load(ws),
-            ws.request(PacketType.GET_STATE),
-        ]);
-
+        const statePacket = await ws.request(PacketType.GET_STATE)
         this.status = this.#parseState(statePacket.parser());
-    }
 
+        await super.load(ws);
+    }
 
     parse(parser) {
         this.stepperCalibration = {

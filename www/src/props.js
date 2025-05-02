@@ -8,10 +8,20 @@ export const PropertyConfig = [{
             displayConverter: (value) => {
                 return ["Homed", ["NO", "YES"][+value]];
             }
+        },
+        {
+            key: "status.moving", type: "label", kind: 'Boolean', cmd: PacketType.MOVING,
+            visibleIf: "status.homed",
+            displayConverter: (value) => {
+                return ["Moving", ["NO", "YES"][+value]];
+            }
         }, {
             key: "status.position", type: "label", kind: "Int32",
             cmd: PacketType.POSITION, visibleIf: "status.homed",
-            displayConverter: (value) => ["Position", value]
+            displayConverter: (value) => [
+                "Position",
+                `${value} (${(value / window.__app.app.config.stepperCalibration.openPosition * 100).toFixed(0)}%)`
+            ]
         },
     ]
 }, {

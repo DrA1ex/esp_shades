@@ -85,5 +85,6 @@ struct __attribute ((packed)) Config {
 
 struct __attribute ((packed)) RuntimeInfo {
     bool homed = false;
+    bool moving = false;
     int32_t position = 0;
 };

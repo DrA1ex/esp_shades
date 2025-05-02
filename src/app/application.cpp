@@ -34,7 +34,12 @@ void Application::begin() {
         _bootstrap_state_changed(sender, state, arg);
     });
 
-    _bootstrap->timer().add_interval([this](auto) { _app_loop(); }, APP_LOOP_INTERVAL);
+    _bootstrap->timer().add_interval([this](auto) { _notify_changes(); }, APP_STATE_NOTIFICATION_INTERVAL);
+    _bootstrap->timer().add_interval([this](auto) {
+        if (_state == AppState::MOVING) {
+            this->_bootstrap->ws_server()->send_notification(PacketType::POSITION);
+        }
+    }, APP_STATE_MOVE_NOTIFICATION_INTERVAL);
 
     _bootstrap->event_state_changed().subscribe(this, BootstrapState::READY, [this, &sys_config](auto, auto, auto) {
         _ntp_time->begin(sys_config.time_zone);
@@ -106,6 +111,7 @@ void Application::_setup() {
     });
 
     ws_server->register_notification(PacketType::HOMED, _metadata->data.homed);
+    ws_server->register_notification(PacketType::MOVING, _metadata->data.moving);
 
     ws_server->register_data_request(PacketType::GET_CONFIG, _metadata->data.config);
     ws_server->register_data_request(PacketType::GET_STATE, _metadata->data.state);
@@ -117,8 +123,9 @@ void Application::_setup() {
 }
 
 void Application::_notify_changes() {
-    _bootstrap->ws_server()->send_notification(PacketType::POSITION);
     _bootstrap->ws_server()->send_notification(PacketType::HOMED);
+    _bootstrap->ws_server()->send_notification(PacketType::MOVING);
+    _bootstrap->ws_server()->send_notification(PacketType::POSITION);
     _bootstrap->mqtt_server()->send_notification(MQTT_OUT_TOPIC_POSITION);
 }
 
@@ -175,11 +182,13 @@ void Application::move_to_step(int32_t pos) {
         return;
     }
 
-    pos += config().stepper_calibration.offset;
     D_PRINTF("Moving to position: %d\r\n", pos);
 
     if (_state == AppState::STAND_BY) {
         _stepper->enable();
+
+        _runtime_info.moving = true;
+        _notify_changes();
         change_state(AppState::MOVING);
     }
 
@@ -194,6 +203,10 @@ void Application::move_to_step(int32_t pos) {
 void Application::emergency_stop() {
     _stepper->brake();
     _stepper->disable();
+
+    _runtime_info.moving = false;
+    _notify_changes();
+
     change_state(AppState::STAND_BY);
 }
 
@@ -222,7 +235,7 @@ Future<void> Application::homing_async() {
 
             // Go down a little
             _stepper->setMaxSpeed(cfg.homing_speed);
-            _stepper->setTarget(cfg.homing_steps / 2);
+            _stepper->setTarget(cfg.homing_steps);
 
             return homing_move_async(false);
         })
@@ -244,7 +257,7 @@ Future<void> Application::homing_async() {
             _stepper->brake();
 
             // Go up a little
-            _stepper->setTarget(cfg.homing_steps,RELATIVE);
+            _stepper->setTarget(cfg.homing_steps, RELATIVE);
 
             return homing_move_async(false);
         })
@@ -258,7 +271,7 @@ Future<void> Application::homing_async() {
 
             // Second homing step
             _stepper->setMaxSpeed(cfg.homing_speed_second);
-            _stepper->setTarget((int32_t) (-1.5 * cfg.homing_steps),RELATIVE);
+            _stepper->setTarget((int32_t) (-1.5 * cfg.homing_steps), RELATIVE);
 
             return homing_move_async();
         })
@@ -269,9 +282,6 @@ Future<void> Application::homing_async() {
             }
 
             _stepper->brake();
-            _runtime_info.homed = true;
-            D_PRINT("Homing success!");
-
             return Future<void>::successful();
         }).then<void>([this, &cfg](auto) {
             D_PRINT("Applying offset...");
@@ -280,10 +290,14 @@ Future<void> Application::homing_async() {
             _stepper->setTarget(config().stepper_calibration.offset, RELATIVE);
 
             return homing_move_async(false);
+        }).then<void>([this](auto) {
+            _runtime_info.homed = true;
+            _stepper->reset();
+
+            D_PRINT("Homing success!");
         })
         .finally([this] {
             _stepper->brake();
-            _stepper->reset();
             _stepper->disable();
 
             _notify_changes();
@@ -327,28 +341,6 @@ void Application::endstop_release() {
     D_PRINT("Endstop released!");
 }
 
-void Application::_app_loop() {
-#if defined(DEBUG) && DEBUG_LEVEL <= __DEBUG_LEVEL_VERBOSE
-    static unsigned long t = 0;
-    static unsigned long ii = 0;
-    if (ii % 10 == 0) D_PRINTF("App loop latency: %lu\r\n", millis() - t);
-
-    t = millis();
-    ++ii;
-#endif
-
-    switch (_state) {
-        case AppState::UNINITIALIZED:
-            break;
-
-        case AppState::INITIALIZATION:
-            break;
-
-        case AppState::STAND_BY:
-            break;
-    }
-}
-
 void Application::_service_loop() {
     _endstop->handle();
     bool moving = _stepper->tick();
@@ -357,7 +349,13 @@ void Application::_service_loop() {
         _stepper->brake();
         _stepper->disable();
 
+        _runtime_info.moving = false;
         change_state(AppState::STAND_BY);
+        _notify_changes();
+    }
+
+    if (_runtime_info.homed && moving) {
+        _runtime_info.position = _stepper->getCurrent();
     }
 }
 

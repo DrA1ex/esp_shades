@@ -9,6 +9,7 @@ MAKE_ENUM(PacketType, uint8_t,
 
     HOMED, 0x10,
     POSITION, 0x11,
+    MOVING, 0x12,
 
     NIGHT_MODE_ENABLED, 0x20,
     NIGHT_MODE_START, 0x21,

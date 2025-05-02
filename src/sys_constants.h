@@ -25,7 +25,8 @@
 #define RESTART_DELAY                           (500u)
 
 #define APP_SERVICE_LOOP_INTERVAL               (2u)
-#define APP_LOOP_INTERVAL                       (15u)
+#define APP_STATE_NOTIFICATION_INTERVAL         (10000u)
+#define APP_STATE_MOVE_NOTIFICATION_INTERVAL    (700u)
 
 #define CONFIG_STRING_SIZE                      (32u)
 

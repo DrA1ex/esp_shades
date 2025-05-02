@@ -68,7 +68,6 @@ private:
 
     void _bootstrap_state_changed(void *sender, BootstrapState state, void *arg);
 
-    void _app_loop();
     void _service_loop();
 
     void _handle_property_change(const AbstractParameter *param);

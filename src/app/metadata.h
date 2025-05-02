@@ -58,6 +58,7 @@ DECLARE_META(DataConfigMeta, AppMetaProperty,
     MEMBER(ComplexParameter<RuntimeInfo>, state),
 
     MEMBER(Parameter<bool>, homed),
+    MEMBER(Parameter<bool>, moving),
     MEMBER(Parameter<int32_t>, position),
 )
 
@@ -225,6 +226,7 @@ inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) 
             .state = ComplexParameter(&runtime_info),
 
             .homed = Parameter(&runtime_info.homed),
+            .moving = Parameter(&runtime_info.moving),
             .position = {
                 PacketType::POSITION,
                 MQTT_TOPIC_POSITION, MQTT_OUT_TOPIC_POSITION,

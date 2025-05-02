@@ -6,7 +6,8 @@ export const PacketType = {
 
     HOMED: 0x10,
     POSITION: 0x11,
-    MOVING: 0x12,
+    POSITION_NORMALIZED: 0x12,
+    MOVING: 0x13,
 
     NIGHT_MODE_ENABLED: 0x20,
     NIGHT_MODE_START: 0x21,

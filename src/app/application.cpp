@@ -24,10 +24,10 @@ void Application::begin() {
     });
 
     _ntp_time = std::make_unique<NtpTime>();
-    _night_mode_manager = std::make_unique<NightModeManager>(*_ntp_time.get(), _bootstrap->timer(), _bootstrap->config());
+    _night_mode_manager = std::make_unique<NightModeManager>(*_ntp_time, _bootstrap->timer(), _bootstrap->config());
 
-    _night_mode_manager->event_night_mode().subscribe(this, [this](auto, auto, auto) {
-        load();
+    _night_mode_manager->event_night_mode().subscribe(this, [this](auto sender, auto state, auto arg) {
+        _night_mode_state_changed(sender, state, arg);
     });
 
     _bootstrap->event_state_changed().subscribe(this, [this](auto sender, auto state, auto arg) {
@@ -35,25 +35,10 @@ void Application::begin() {
     });
 
     _bootstrap->timer().add_interval([this](auto) { _notify_changes(); }, APP_STATE_NOTIFICATION_INTERVAL);
-    _bootstrap->timer().add_interval([this](auto) {
-        if (_state == AppState::MOVING) {
-            this->_bootstrap->ws_server()->send_notification(PacketType::POSITION);
-        }
-    }, APP_STATE_MOVE_NOTIFICATION_INTERVAL);
+    _bootstrap->timer().add_interval([this](auto) { _move_notification_loop(); }, APP_STATE_MOVE_NOTIFICATION_INTERVAL);
 
     _bootstrap->event_state_changed().subscribe(this, BootstrapState::READY, [this, &sys_config](auto, auto, auto) {
-        _ntp_time->begin(sys_config.time_zone);
-
-        _ntp_time->update();
-        _night_mode_manager->update();
-
-        load();
-
-        _bootstrap->timer().add_interval([this](auto) {
-            if (_bootstrap->wifi_manager()->mode() == WifiMode::STA) {
-                _ntp_time->update();
-            }
-        }, BOOTSTRAP_SERVICE_LOOP_INTERVAL);
+        _on_bootstrap_ready();
     });
 
     auto &stepper_cfg = config().stepper_config;
@@ -112,6 +97,7 @@ void Application::_setup() {
 
     ws_server->register_notification(PacketType::HOMED, _metadata->data.homed);
     ws_server->register_notification(PacketType::MOVING, _metadata->data.moving);
+    ws_server->register_notification(PacketType::POSITION, _metadata->data.position);
 
     ws_server->register_data_request(PacketType::GET_CONFIG, _metadata->data.config);
     ws_server->register_data_request(PacketType::GET_STATE, _metadata->data.state);
@@ -129,6 +115,16 @@ void Application::_notify_changes() {
     _bootstrap->ws_server()->send_notification(PacketType::POSITION);
     _bootstrap->mqtt_server()->send_notification(MQTT_OUT_TOPIC_POSITION);
 }
+void Application::_on_bootstrap_ready() {
+    _ntp_time->begin(config().sys_config.time_zone);
+
+    _ntp_time->update();
+    _night_mode_manager->update();
+
+    _bootstrap->timer().add_interval([this](auto) {
+        _bootstrap_service_loop();
+    }, BOOTSTRAP_SERVICE_LOOP_INTERVAL);
+}
 
 void Application::event_loop() {
     _bootstrap->event_loop();
@@ -140,20 +136,15 @@ void Application::_handle_property_change(const AbstractParameter *parameter) {
 
     auto type = it->second;
     if (type >= PacketType::NIGHT_MODE_ENABLED && type <= PacketType::NIGHT_MODE_END) {
-        _night_mode_manager.reset();
-        update();
-    } else {
-        update();
+        _night_mode_manager->update();
     }
+
+    update();
 }
 
-void Application::load() {
-    // TODO
-}
 
 void Application::update() {
     _bootstrap->save_changes();
-    load();
 }
 
 void Application::change_state(AppState s) {
@@ -220,6 +211,7 @@ Future<void> Application::homing_async() {
     change_state(AppState::HOMING);
 
     _runtime_info.position = 0;
+    _runtime_info.position_normalized = 0;
     _runtime_info.homed = false;
 
     _notify_changes();
@@ -322,6 +314,12 @@ Future<bool> Application::homing_move_async(bool detect_endstop) {
         _bootstrap->timer().clear_interval(timer_id);
     });
 }
+Future<void> Application::homing_if_needed() {
+    if (_runtime_info.homed) return Future<void>::successful();
+    if (_state == AppState::HOMING) return Future<void>::errored();
+
+    return homing_async();
+}
 
 void Application::endstop_triggered() {
     if (_endstop_pressed) return;
@@ -357,6 +355,19 @@ void Application::_service_loop() {
 
     if (_runtime_info.homed && moving) {
         _runtime_info.position = _stepper->getCurrent();
+        _runtime_info.position_normalized = (float) _runtime_info.position / config().stepper_calibration.open_position;
+    }
+}
+
+void Application::_bootstrap_service_loop() {
+    if (_bootstrap->wifi_manager()->mode() == WifiMode::STA) {
+        _ntp_time->update();
+    }
+}
+
+void Application::_move_notification_loop() {
+    if (_state == AppState::MOVING) {
+        this->_bootstrap->ws_server()->send_notification(PacketType::POSITION);
     }
 }
 
@@ -365,11 +376,17 @@ void Application::_bootstrap_state_changed(void *sender, BootstrapState state, v
         _ntp_time->begin(TIME_ZONE);
 
         change_state(AppState::INITIALIZATION);
-        load();
     } else if (state == BootstrapState::READY && !_initialized) {
         _initialized = true;
 
         change_state(AppState::STAND_BY);
-        load();
+    }
+}
+
+void Application::_night_mode_state_changed(void *sender, NightModeState state, void *arg) {
+    if (state == NightModeState::ACTIVE) {
+        homing_if_needed().then<void>([this](auto) { close(); });
+    } else if (state == NightModeState::WAITING || state == NightModeState::KILLED) {
+        homing_if_needed().then<void>([this](auto) { open(); });
     }
 }

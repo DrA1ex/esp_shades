@@ -60,6 +60,7 @@ DECLARE_META(DataConfigMeta, AppMetaProperty,
     MEMBER(Parameter<bool>, homed),
     MEMBER(Parameter<bool>, moving),
     MEMBER(Parameter<int32_t>, position),
+    MEMBER(Parameter<float>, position_normalized),
 )
 
 DECLARE_META(ConfigMetadata, AppMetaProperty,
@@ -221,10 +222,11 @@ inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) 
 
             .homed = Parameter(&runtime_info.homed),
             .moving = Parameter(&runtime_info.moving),
-            .position = {
-                PacketType::POSITION,
+            .position = Parameter(&runtime_info.position),
+            .position_normalized = {
+                PacketType::POSITION_NORMALIZED,
                 MQTT_TOPIC_POSITION, MQTT_OUT_TOPIC_POSITION,
-                &runtime_info.position
+                &runtime_info.position_normalized
             },
         },
     };

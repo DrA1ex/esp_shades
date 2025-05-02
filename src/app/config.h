@@ -85,4 +85,5 @@ struct __attribute ((packed)) RuntimeInfo {
     bool homed = false;
     bool moving = false;
     int32_t position = 0;
+    float position_normalized = 0;
 };

@@ -39,7 +39,6 @@ public:
     void begin();
     void event_loop();
 
-    void load();
     void update();
 
     void open();
@@ -58,6 +57,8 @@ protected:
     Future<void> homing_async();
     Future<bool> homing_move_async(bool detect_endstop = true);
 
+    Future<void> homing_if_needed();
+
     void endstop_triggered();
     void endstop_release();
 
@@ -66,9 +67,14 @@ private:
 
     void _notify_changes();
 
+    void _on_bootstrap_ready();
     void _bootstrap_state_changed(void *sender, BootstrapState state, void *arg);
+    void _night_mode_state_changed(void *sender, NightModeState state, void *arg);
 
     void _service_loop();
+    void _bootstrap_service_loop();
+    void _move_notification_loop();
+
 
     void _handle_property_change(const AbstractParameter *param);
 };

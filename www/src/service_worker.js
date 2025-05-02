@@ -3,7 +3,7 @@ const CACHE_KEY = "cache";
 const URL_TO_CACHE = [
     "./",
     "./index.js",
-    "./style.css",
+    "./lib/style.css",
 ];
 
 self.addEventListener("install", (event) => {

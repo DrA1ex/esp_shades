@@ -11,7 +11,6 @@ export const PropertyConfig = [{
         },
         {
             key: "status.moving", type: "label", kind: 'Boolean', cmd: PacketType.MOVING,
-            visibleIf: "status.homed",
             displayConverter: (value) => {
                 return ["Moving", ["NO", "YES"][+value]];
             }
@@ -26,12 +25,19 @@ export const PropertyConfig = [{
     ]
 }, {
     key: "general", section: "General", props: [
+        {
+            key: "status.position_target", type: "wheel", min: 0, limit: 100, integer: false,
+            title: "Open Position",
+            kind: "Float32", cmd: PacketType.POSITION_TARGET,
+            visibleIf: "status.homed",
+            displayConverter: (value) => value.toFixed(1)
+        },
         {type: "title", label: "Actions", extra: {m_top: true}},
         {key: "do_homing", type: "button", label: "Homing", visibleIf: "status.homed", visibilityInvert: true, cmd: PacketType.HOMING},
         {key: "do_open", type: "button", label: "Open", visibleIf: "status.homed", cmd: PacketType.OPEN},
         {key: "do_close", type: "button", label: "Close", visibleIf: "status.homed", cmd: PacketType.CLOSE},
 
-        {key: "do_stop", type: "button", label: "Stop", visibleIf: "status.homed", cmd: PacketType.STOP},
+        {key: "do_stop", type: "button", label: "Stop", visibleIf: "status.moving", cmd: PacketType.STOP},
     ],
 }, {
     key: "calibration", section: "Calibration", collapse: true, props: [

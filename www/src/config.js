@@ -91,6 +91,7 @@ export class Config extends AppConfigBase {
             homed: parser.readBoolean(),
             moving: parser.readBoolean(),
             position: parser.readInt32(),
+            position_target: parser.readFloat32(),
         }
     }
 }

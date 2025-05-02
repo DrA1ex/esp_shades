@@ -110,11 +110,11 @@ void Application::_setup() {
 }
 
 void Application::_notify_changes() {
-    _bootstrap->ws_server()->send_notification(PacketType::HOMED);
-    _bootstrap->ws_server()->send_notification(PacketType::MOVING);
-    _bootstrap->ws_server()->send_notification(PacketType::POSITION);
-    _bootstrap->mqtt_server()->send_notification(MQTT_OUT_TOPIC_POSITION);
+    NotificationBus::get().notify_parameter_changed(this, _metadata->data.homed);
+    NotificationBus::get().notify_parameter_changed(this, _metadata->data.moving);
+    NotificationBus::get().notify_parameter_changed(this, _metadata->data.position);
 }
+
 void Application::_on_bootstrap_ready() {
     _ntp_time->begin(config().sys_config.time_zone);
 
@@ -135,7 +135,12 @@ void Application::_handle_property_change(const AbstractParameter *parameter) {
     if (it == _parameter_to_packet.end()) return;
 
     auto type = it->second;
-    if (type >= PacketType::NIGHT_MODE_ENABLED && type <= PacketType::NIGHT_MODE_END) {
+    if (type == PacketType::POSITION_TARGET) {
+        auto value = *(float *) parameter->get_value();
+        D_PRINTF("Requested target position: %0.2f%%", value);
+
+        move_to(value);
+    } else if (type >= PacketType::NIGHT_MODE_ENABLED && type <= PacketType::NIGHT_MODE_END) {
         _night_mode_manager->update();
     }
 
@@ -154,18 +159,20 @@ void Application::change_state(AppState s) {
 }
 
 void Application::open() {
-    move_to(100);
+    move_to(0);
 }
 
 void Application::close() {
-    move_to(0);
+    move_to(100);
 }
 
 void Application::move_to(float value) {
     auto k = std::min(std::max(value, 0.0f), 100.f) / 100.f;
-    if (config().stepper_config.reverse) k = 1.f - k;
+    _runtime_info.position_target = k * 100.f;
 
-    move_to_step(config().stepper_calibration.open_position * k);
+    NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
+
+    move_to_step((int32_t) (config().stepper_calibration.open_position * k));
 }
 
 void Application::move_to_step(int32_t pos) {
@@ -196,10 +203,17 @@ void Application::emergency_stop() {
     _stepper->brake();
     _stepper->disable();
 
-    _runtime_info.moving = false;
-    _notify_changes();
 
-    change_state(AppState::STAND_BY);
+
+    if (_state != AppState::HOMING) {
+        _runtime_info.moving = false;
+        _runtime_info.position_target = (float) _stepper->getCurrent() / config().stepper_calibration.open_position * 100.f;
+
+        NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
+        _notify_changes();
+
+        change_state(AppState::STAND_BY);
+    }
 }
 
 Future<void> Application::homing_async() {
@@ -211,8 +225,9 @@ Future<void> Application::homing_async() {
     change_state(AppState::HOMING);
 
     _runtime_info.position = 0;
-    _runtime_info.position_normalized = 0;
+    _runtime_info.position_target = 0;
     _runtime_info.homed = false;
+    _runtime_info.moving = true;
 
     _notify_changes();
 
@@ -293,6 +308,7 @@ Future<void> Application::homing_async() {
             _stepper->brake();
             _stepper->disable();
 
+            _runtime_info.moving = false;
             _notify_changes();
 
             change_state(AppState::STAND_BY);
@@ -355,7 +371,6 @@ void Application::_service_loop() {
 
     if (_runtime_info.homed && moving) {
         _runtime_info.position = _stepper->getCurrent();
-        _runtime_info.position_normalized = (float) _runtime_info.position / config().stepper_calibration.open_position;
     }
 }
 
@@ -367,7 +382,7 @@ void Application::_bootstrap_service_loop() {
 
 void Application::_move_notification_loop() {
     if (_state == AppState::MOVING) {
-        this->_bootstrap->ws_server()->send_notification(PacketType::POSITION);
+        NotificationBus::get().notify_parameter_changed(this, _metadata->data.position);
     }
 }
 
@@ -386,7 +401,7 @@ void Application::_bootstrap_state_changed(void *sender, BootstrapState state, v
 void Application::_night_mode_state_changed(void *sender, NightModeState state, void *arg) {
     if (state == NightModeState::ACTIVE) {
         homing_if_needed().then<void>([this](auto) { close(); });
-    } else if (state == NightModeState::WAITING || state == NightModeState::KILLED) {
+    } else if (state == NightModeState::WAITING) {
         homing_if_needed().then<void>([this](auto) { open(); });
     }
 }

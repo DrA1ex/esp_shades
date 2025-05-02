@@ -10,7 +10,7 @@
 #define WIFI_MAX_CONNECTION_ATTEMPT_INTERVAL    (120000u)               // Max time (ms) to wait for Wi-Fi connection before switch to AP mode
                                                                          // 0 - Newer switch to AP mode
 
-#define MDNS_NAME                               "esp_shade"
+#define MDNS_NAME                               "esp_shades"
 
 #define STEPPER_PIN_1                           (9)
 #define STEPPER_PIN_2                           (6)

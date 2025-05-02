@@ -2,11 +2,12 @@
 
 Smart Roller Shades/Blinders Control for ESP32-C3
 
-Other: [[RGB LED LAMP](https://github.com/DrA1ex/esp_led_lamp)] [[LED](https://github.com/DrA1ex/esp_led) [[RELAY](https://github.com/DrA1ex/esp_relay)]
+Other: [[RGB LED LAMP](https://github.com/DrA1ex/esp_led_lamp)] [[LED](https://github.com/DrA1ex/esp_led)] [[RELAY](https://github.com/DrA1ex/esp_relay)]
 
 ## UI
 
-TODO
+<img width="382" alt="image" src="https://github.com/user-attachments/assets/a2eba0ad-ee8d-491d-8ac3-008b8cd79ef4" />
+
 
 ## Features
 
@@ -16,18 +17,21 @@ TODO
 
 ## Connection
 
-You need any 4-phase step motor along with driver.
-You can use end-stop button or Hall sensor as endstop.
+To set up the ESP32-C3 for controlling smart roller shades or blinds, you will need a 4-phase stepper motor paired with a compatible driver. This motor will drive the mechanical movement of the shades. Additionally, you need incorporate an end-stop mechanism, such as an end-stop button or a Hall sensor, to detect the fully open position of the shades.
 
-Connect them af defined in [constants.h](/src/constants.h)
+### Configuration
+Connect the stepper motor, driver, and end-stop components to the ESP32-C3 as defined in the [constants.h](/src/constants.h) file.
+
+Before uploading the firmware, verify the pin assignments in `constants.h` match your hardware setup. Incorrect pin configurations can lead to motor malfunctions or unresponsive end-stops. If you’re using a Hall sensor, ensure it is calibrated to detect the magnetic field at the desired end-stop position.
+
+For detailed pin mappings and configuration options, check [constants.h](/src/constants.h).
 
 ## Installation
 
 ### Manual Build / OTA
 
 1. Install [Platform.IO](https://platformio.org/install):
-2. (Optional) Modify the `credentials.h` file and, if necessary, customize `constants.h`. You can change these parameters later through the
-   Web UI.
+2. (Optional) Modify the `credentials.h` file and, if necessary, customize `constants.h`. You can change these parameters later through the Web UI.
 3. Upload filesystem and firmware
 
 **Note:** This repository contains a submodule. Please use the `--recursive` option when cloning.
@@ -62,14 +66,13 @@ pio run -t upload -e $PLATFORM-$ENV --upload-port "$ADDRESS"
 | `MQTT_TOPIC_POSITION`	   | `MQTT_OUT_TOPIC_POSITION`     | `float32` | 0..100  | Position, can switch to 0..100  	   |
 | `MQTT_TOPIC_NIGHT_MODE`	   | `MQTT_OUT_TOPIC_NIGHT_MODE` 	 | `uint8_t` | 0..1    | Night mode _state: ON (1) / OFF (0) |
 
-\* Actual topic values decalred in `constants.h`
+\* Actual topic values declared in `constants.h`
 
 ## Misc
 
 ### Configuring a Secure WebSocket Proxy with Nginx
 
-If you're hosting a Web UI that uses SSL, you'll need to set up a Secure WebSocket (`wss://...`) server instead of the non-secure `ws://`
-provided by your ESP. Browsers require secure socket connections for WebSocket functionality, so this configuration is essential.
+If you're hosting a Web UI that uses SSL, you'll need to set up a Secure WebSocket (`wss://...`) server instead of the non-secure `ws://` provided by your ESP. Browsers require secure socket connections for WebSocket functionality, so this configuration is essential.
 
 To achieve this, you can use Nginx as a proxy to create an SSL-enabled WebSocket connection.
 

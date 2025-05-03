@@ -139,7 +139,9 @@ void Application::_handle_property_change(const AbstractParameter *parameter) {
         auto value = *(float *) parameter->get_value();
         D_PRINTF("Requested target position: %0.2f%%", value);
 
-        move_to(value);
+        homing_if_needed().then<void>([this, value](auto) {
+            move_to(value);
+        });
     } else if (type >= PacketType::NIGHT_MODE_ENABLED && type <= PacketType::NIGHT_MODE_END) {
         _night_mode_manager->update();
     }

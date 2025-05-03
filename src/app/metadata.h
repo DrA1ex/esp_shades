@@ -72,6 +72,9 @@ DECLARE_META(ConfigMetadata, AppMetaProperty,
     SUB_TYPE(DataConfigMeta, data),
 )
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+
 inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) {
     return {
         .stepper_calibration = {
@@ -231,3 +234,5 @@ inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) 
         },
     };
 }
+
+#pragma GCC diagnostic pop

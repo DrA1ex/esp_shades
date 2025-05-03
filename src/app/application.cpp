@@ -323,7 +323,7 @@ Future<void> Application::homing_async() {
 
 Future<bool> Application::homing_move_async(bool detect_endstop) {
     auto promise = Promise<bool>::create();
-    auto timer_id = _bootstrap->timer().add_interval([=](auto) {
+    auto timer_id = _bootstrap->timer().add_interval([=, this](auto) {
         if (promise->finished()) return;
 
         if ((_endstop_pressed && detect_endstop) || !_stepper->tick()) {

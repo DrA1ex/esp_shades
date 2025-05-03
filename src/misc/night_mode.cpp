@@ -8,7 +8,7 @@ void NightModeManager::update() {
         _set_state(NightModeState::NO_TIME);
 
         _night_mode_timer = _timer.add_timeout(
-                [=](auto) {
+                [=, this](auto) {
                     _night_mode_timer_handler();
                 }, 1000);
 
@@ -54,7 +54,7 @@ void NightModeManager::update() {
     D_PRINTF("Night mode: schedule update after %lu sec\r\n", interval);
 
     _night_mode_timer = _timer.add_timeout(
-            [=](auto) {
+            [=, this](auto) {
                 _night_mode_timer_handler();
             }, interval * 1000);
 }

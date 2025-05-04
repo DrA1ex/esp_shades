@@ -20,7 +20,7 @@ class Application {
     std::unique_ptr<NightModeManager> _night_mode_manager = nullptr;
     std::unique_ptr<NtpTime> _ntp_time = nullptr;
     std::unique_ptr<Button> _endstop = nullptr;
-    std::unique_ptr<GStepper2<STEPPER4WIRE>> _stepper = nullptr;
+    std::unique_ptr<GStepper2<STEPPER_TYPE>> _stepper = nullptr;
 
     RuntimeInfo _runtime_info{};
 

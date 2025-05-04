@@ -32,4 +32,5 @@
 
 #define BTN_HOLD_CALL_INTERVAL                  (20u)
 
+#define STEPPER_TYPE                            (STEPPER4WIRE)
 #define STEPPER_RESOLUTION                      (4096)

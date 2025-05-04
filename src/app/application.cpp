@@ -42,7 +42,7 @@ void Application::begin() {
     });
 
     auto &stepper_cfg = config().stepper_config;
-    _stepper = std::make_unique<GStepper2<STEPPER4WIRE>>(
+    _stepper = std::make_unique<GStepper2<STEPPER_TYPE>>(
         (uint16_t) stepper_cfg.resolution,
         sys_config.stepper_pin_1,
         sys_config.stepper_pin_2,

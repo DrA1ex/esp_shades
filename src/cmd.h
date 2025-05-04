@@ -70,4 +70,5 @@ MAKE_ENUM(PacketType, uint8_t,
     OPEN, 0xc1,
     CLOSE, 0xc2,
     STOP, 0xc3,
+    APPLY_OFFSET, 0xc4,
 )

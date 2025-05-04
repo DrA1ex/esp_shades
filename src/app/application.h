@@ -45,6 +45,7 @@ public:
     void close();
 
     void move_to(float value);
+    void apply_offset();
 
     void restart() { _bootstrap->restart(); }
 

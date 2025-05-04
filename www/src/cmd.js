@@ -67,4 +67,5 @@ export const PacketType = {
     OPEN: 0xc1,
     CLOSE: 0xc2,
     STOP: 0xc3,
+    APPLY_OFFSET: 0xc4,
 };

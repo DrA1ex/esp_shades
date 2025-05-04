@@ -107,6 +107,8 @@ void Application::_setup() {
     ws_server->register_command(PacketType::OPEN, [this] { open(); });
     ws_server->register_command(PacketType::CLOSE, [this] { close(); });
     ws_server->register_command(PacketType::STOP, [this] { emergency_stop(); });
+
+    ws_server->register_command(PacketType::APPLY_OFFSET, [this] { apply_offset(); });
 }
 
 void Application::_notify_changes() {
@@ -175,6 +177,20 @@ void Application::move_to(float value) {
     NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
 
     move_to_step((int32_t) (config().stepper_calibration.open_position * k));
+}
+
+void Application::apply_offset() {
+    if (_state != AppState::STAND_BY) return;
+
+    auto new_offset = config().stepper_calibration.offset;
+    if (new_offset == _runtime_info.offset) return;
+
+    auto pos = _stepper->getCurrent();
+    auto d_offset = new_offset - _runtime_info.offset;
+    _runtime_info.offset = new_offset;
+
+    _stepper->setCurrent(pos - d_offset);
+    move_to_step(pos);
 }
 
 void Application::move_to_step(int32_t pos) {

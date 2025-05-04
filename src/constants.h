@@ -37,4 +37,4 @@
 #define MQTT_OUT_TOPIC_POSITION                 MQTT_OUT_PREFIX "/position"
 #define MQTT_OUT_TOPIC_NIGHT_MODE               MQTT_OUT_PREFIX "/night_mode"
 
-#include "_override/credentials.h"
+#include "_override/shade_2.h"

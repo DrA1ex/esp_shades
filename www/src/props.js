@@ -41,8 +41,12 @@ export const PropertyConfig = [{
     ],
 }, {
     key: "calibration", section: "Calibration", collapse: true, props: [
-        {key: "stepperCalibration.offset", title: "Offset", type: "int", kind: "Uint16", cmd: PacketType.STEPPER_CALIBRATION_OFFSET},
+        {key: "stepperCalibration.offset", title: "Offset", type: "int", kind: "Int16", cmd: PacketType.STEPPER_CALIBRATION_OFFSET},
         {key: "stepperCalibration.openPosition", title: "Open Position", type: "int", kind: "Int32", cmd: PacketType.STEPPER_CALIBRATION_OPEN_POSITION},
+
+        {type: "title", label: "Actions", extra: {m_top: true}},
+        {key: "do_apply_offset", type: "button", label: "Apply Offset", visibleIf: "status.homed", cmd: PacketType.APPLY_OFFSET},
+        {key: "do_homing_2", type: "button", label: "Homing", cmd: PacketType.HOMING},
     ]
 }, {
     key: "night_mode", section: "Night Mode", collapse: true, props: [

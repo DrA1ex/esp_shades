@@ -89,6 +89,7 @@ export class Config extends AppConfigBase {
             moving: parser.readBoolean(),
             position: parser.readInt32(),
             position_target: parser.readFloat32(),
+            offset: parser.readInt16(),
         }
     }
 }

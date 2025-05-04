@@ -129,6 +129,7 @@ void Application::_on_bootstrap_ready() {
 }
 
 void Application::event_loop() {
+    _stepper->tick();
     _bootstrap->event_loop();
 }
 
@@ -342,7 +343,7 @@ Future<bool> Application::homing_move_async(bool detect_endstop) {
     auto timer_id = _bootstrap->timer().add_interval([=, this](auto) {
         if (promise->finished()) return;
 
-        if ((_endstop_pressed && detect_endstop) || !_stepper->tick()) {
+        if ((_endstop_pressed && detect_endstop) || _stepper->getStatus() == 0) {
             promise->set_success(_endstop_pressed);
         }
     }, APP_SERVICE_LOOP_INTERVAL);
@@ -380,7 +381,7 @@ void Application::endstop_release() {
 
 void Application::_service_loop() {
     _endstop->handle();
-    bool moving = _stepper->tick();
+    bool moving = _stepper->getStatus() != 0;
 
     if (_state == AppState::MOVING && !moving) {
         _stepper->brake();

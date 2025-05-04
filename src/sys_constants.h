@@ -31,3 +31,5 @@
 #define CONFIG_STRING_SIZE                      (32u)
 
 #define BTN_HOLD_CALL_INTERVAL                  (20u)
+
+#define STEPPER_RESOLUTION                      (4096)

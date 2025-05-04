@@ -54,13 +54,13 @@ struct __attribute ((packed)) NightModeConfig {
 
 struct __attribute ((packed)) StepperCalibrationConfig {
     int16_t offset = 100;
-    int32_t open_position = 4096 * 10;
+    int32_t open_position = STEPPER_RESOLUTION * 10;
 };
 
 struct __attribute ((packed)) StepperConfig {
     bool reverse = false;
 
-    uint16_t resolution = 4096;
+    uint16_t resolution = STEPPER_RESOLUTION;
 
     uint16_t open_speed = 300;
     uint16_t close_speed = 500;
@@ -70,7 +70,7 @@ struct __attribute ((packed)) StepperConfig {
     uint16_t homing_speed_second = 100;
 
     int32_t homing_steps = 300;
-    int32_t homing_steps_max = 4096 * 10;
+    int32_t homing_steps_max = STEPPER_RESOLUTION * 10;
 };
 
 struct __attribute ((packed)) Config {

@@ -17,6 +17,9 @@ Other: [[RGB LED LAMP](https://github.com/DrA1ex/esp_led_lamp)] [[LED](https://g
 
 ## Connection
 
+![image](https://github.com/user-attachments/assets/5ffc6556-a68d-44c3-a5da-f1e7bb6f1139)
+
+
 To set up the ESP32-C3 for controlling smart roller shades or blinds, you will need a 4-phase stepper motor paired with a compatible driver. This motor will drive the mechanical movement of the shades. Additionally, you need incorporate an end-stop mechanism, such as an end-stop button or a Hall sensor, to detect the fully open position of the shades.
 
 ### Configuration

@@ -12,7 +12,7 @@
 
 #define MDNS_NAME                               "esp_shades"
 
-#define STEPPER_PIN_1                           (9)
+#define STEPPER_PIN_1                           (10)
 #define STEPPER_PIN_2                           (6)
 #define STEPPER_PIN_3                           (7)
 #define STEPPER_PIN_4                           (5)

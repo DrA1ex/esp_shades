@@ -65,6 +65,7 @@ protected:
 
 private:
     void _setup();
+    void _load();
 
     void _notify_changes();
 
@@ -75,7 +76,6 @@ private:
     void _service_loop();
     void _bootstrap_service_loop();
     void _move_notification_loop();
-
 
     void _handle_property_change(const AbstractParameter *param);
 };

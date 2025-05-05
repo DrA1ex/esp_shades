@@ -32,6 +32,12 @@ export const PropertyConfig = [{
             visibleIf: "status.homed",
             displayConverter: (value) => value.toFixed(1)
         },
+        {
+            key: "speed", type: "wheel", min: 0, limit: 2,
+            title: "Speed",  kind: "Uint8", cmd: PacketType.SPEED,
+            visibleIf: "status.homed",
+            displayConverter: (value) => ["Slow", "Medium", "Fast"][value]
+        },
         {type: "title", label: "Actions", extra: {m_top: true}},
         {key: "do_homing", type: "button", label: "Homing", visibleIf: "status.homed", visibilityInvert: true, cmd: PacketType.HOMING},
         {key: "do_open", type: "button", label: "Open", visibleIf: "status.homed", cmd: PacketType.OPEN},

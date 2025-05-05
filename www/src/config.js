@@ -5,6 +5,7 @@ import {PacketType} from "./cmd.js";
 
 
 export class Config extends AppConfigBase {
+    speed;
     nightMode;
     stepperCalibration;
     stepperConfig;
@@ -31,6 +32,8 @@ export class Config extends AppConfigBase {
     }
 
     parse(parser) {
+        this.speed = parser.readUint8();
+
         this.stepperCalibration = {
             offset: parser.readUint16(),
             openPosition: parser.readInt32()
@@ -90,6 +93,8 @@ export class Config extends AppConfigBase {
             position: parser.readInt32(),
             position_target: parser.readFloat32(),
             offset: parser.readInt16(),
+            speed: parser.readFloat32(),
+            speed_steps: parser.readInt32()
         }
     }
 }

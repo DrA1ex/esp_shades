@@ -61,9 +61,13 @@ DECLARE_META(DataConfigMeta, AppMetaProperty,
     MEMBER(Parameter<bool>, moving),
     MEMBER(Parameter<int32_t>, position),
     MEMBER(Parameter<float>, position_target),
+
+    MEMBER(GeneratedParameter<bool>, openned)
 )
 
 DECLARE_META(ConfigMetadata, AppMetaProperty,
+    MEMBER(Parameter<uint8_t>, speed),
+
     SUB_TYPE(StepperCalibrationConfigMeta, stepper_calibration),
     SUB_TYPE(StepperConfigMeta, stepper_config),
     SUB_TYPE(NightModeConfigMeta, night_mode),
@@ -72,11 +76,13 @@ DECLARE_META(ConfigMetadata, AppMetaProperty,
     SUB_TYPE(DataConfigMeta, data),
 )
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-
 inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) {
     return {
+        .speed = {
+            PacketType::SPEED,
+            MQTT_TOPIC_SPEED, MQTT_OUT_TOPIC_SPEED,
+            &config.speed
+        },
         .stepper_calibration = {
             .offset = {
                 PacketType::STEPPER_CALIBRATION_OFFSET,
@@ -231,8 +237,11 @@ inline ConfigMetadata build_metadata(Config &config, RuntimeInfo &runtime_info) 
                 MQTT_TOPIC_POSITION, MQTT_OUT_TOPIC_POSITION,
                 &runtime_info.position_target
             },
+
+            .openned = {
+                MQTT_OUT_TOPIC_OPEN,
+                {[&runtime_info] { return runtime_info.position <= 1; }}
+            }
         },
     };
 }
-
-#pragma GCC diagnostic pop

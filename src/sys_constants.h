@@ -34,3 +34,4 @@
 
 #define STEPPER_TYPE                            (STEPPER4WIRE)
 #define STEPPER_RESOLUTION                      (4096)
+#define STEPPER_MIN_SPEED                       ((int32_t)(STEPPER_RESOLUTION / 90))

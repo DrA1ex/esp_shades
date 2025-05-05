@@ -73,7 +73,15 @@ struct __attribute ((packed)) StepperConfig {
     int32_t homing_steps_max = STEPPER_RESOLUTION * 10;
 };
 
+enum class Speed: uint8_t {
+    SLOW   = 0,
+    NORMAL = 1,
+    FAST   = 2
+};
+
 struct __attribute ((packed)) Config {
+    Speed speed = Speed::NORMAL;
+
     StepperCalibrationConfig stepper_calibration{};
     NightModeConfig night_mode{};
 
@@ -88,4 +96,7 @@ struct __attribute ((packed)) RuntimeInfo {
 
     float position_target = 0;
     int16_t offset = 0;
+
+    float speed = 1;
+    int32_t speed_steps = 0;
 };

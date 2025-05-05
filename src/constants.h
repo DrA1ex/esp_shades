@@ -30,9 +30,13 @@
 #define MQTT_RECONNECT_TIMEOUT                  (5000u)                 // Time before new reconnection attempt to MQTT server
 
 #define MQTT_PREFIX                             ""
+#define MQTT_TOPIC_OPEN                         MQTT_PREFIX "/open"
 #define MQTT_TOPIC_POSITION                     MQTT_PREFIX "/position"
+#define MQTT_TOPIC_SPEED                        MQTT_PREFIX "/speed"
 #define MQTT_TOPIC_NIGHT_MODE                   MQTT_PREFIX "/night_mode"
 
 #define MQTT_OUT_PREFIX                         MQTT_PREFIX "/out"
+#define MQTT_OUT_TOPIC_OPEN                     MQTT_OUT_PREFIX "/open"
 #define MQTT_OUT_TOPIC_POSITION                 MQTT_OUT_PREFIX "/position"
+#define MQTT_OUT_TOPIC_SPEED                    MQTT_OUT_PREFIX "/speed"
 #define MQTT_OUT_TOPIC_NIGHT_MODE               MQTT_OUT_PREFIX "/night_mode"

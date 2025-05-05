@@ -8,6 +8,7 @@ export const PacketType = {
     POSITION: 0x11,
     POSITION_TARGET: 0x12,
     MOVING: 0x13,
+    SPEED: 0x14,
 
     NIGHT_MODE_ENABLED: 0x20,
     NIGHT_MODE_START: 0x21,

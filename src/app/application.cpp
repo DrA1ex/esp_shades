@@ -37,7 +37,7 @@ void Application::begin() {
     _bootstrap->timer().add_interval([this](auto) { _notify_changes(); }, APP_STATE_NOTIFICATION_INTERVAL);
     _bootstrap->timer().add_interval([this](auto) { _move_notification_loop(); }, APP_STATE_MOVE_NOTIFICATION_INTERVAL);
 
-    _bootstrap->event_state_changed().subscribe(this, BootstrapState::READY, [this, &sys_config](auto, auto, auto) {
+    _bootstrap->event_state_changed().subscribe(this, BootstrapState::READY, [this](auto, auto, auto) {
         _on_bootstrap_ready();
     });
 
@@ -109,6 +109,23 @@ void Application::_setup() {
     ws_server->register_command(PacketType::STOP, [this] { emergency_stop(); });
 
     ws_server->register_command(PacketType::APPLY_OFFSET, [this] { apply_offset(); });
+
+    mqtt_server->register_notification(MQTT_OUT_TOPIC_OPEN, _metadata->data.openned);
+    mqtt_server->register_command(MQTT_TOPIC_OPEN, [this](const auto &payload) {
+        homing_if_needed().then<void>([this, value = payload.toInt() == 1](const auto &) {
+            if (value) open();
+            else close();
+        });
+    });
+}
+void Application::_load() {
+    float speed_f;
+
+    if (auto value = config().speed; value == Speed::FAST) speed_f = 1.f;
+    else if (value == Speed::NORMAL) speed_f = 0.5f;
+    else speed_f = 0.f;
+
+    _runtime_info.speed = speed_f;
 }
 
 void Application::_notify_changes() {
@@ -118,6 +135,8 @@ void Application::_notify_changes() {
 }
 
 void Application::_on_bootstrap_ready() {
+    _load();
+
     _ntp_time->begin(config().sys_config.time_zone);
 
     _ntp_time->update();
@@ -137,14 +156,23 @@ void Application::_handle_property_change(const AbstractParameter *parameter) {
     auto it = _parameter_to_packet.find(parameter);
     if (it == _parameter_to_packet.end()) return;
 
+    _load();
+
     auto type = it->second;
     if (type == PacketType::POSITION_TARGET) {
         auto value = *(float *) parameter->get_value();
         D_PRINTF("Requested target position: %0.2f%%", value);
 
-        homing_if_needed().then<void>([this, value](auto) {
+        homing_if_needed().then<void>([this, value](auto &) {
             move_to(value);
         });
+    } else if (type == PacketType::SPEED) {
+        if (_state == AppState::MOVING) {
+            auto new_speed = _runtime_info.speed_steps * _runtime_info.speed;
+
+            _stepper->setMaxSpeed(std::max((int32_t) new_speed, STEPPER_MIN_SPEED));
+            _stepper->setTarget(_stepper->getTarget());
+        }
     } else if (type >= PacketType::NIGHT_MODE_ENABLED && type <= PacketType::NIGHT_MODE_END) {
         _night_mode_manager->update();
     }
@@ -176,6 +204,7 @@ void Application::move_to(float value) {
     _runtime_info.position_target = k * 100.f;
 
     NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
+    NotificationBus::get().notify_parameter_changed(this, _metadata->data.openned);
 
     move_to_step((int32_t) (config().stepper_calibration.open_position * k));
 }
@@ -216,10 +245,13 @@ void Application::move_to_step(int32_t pos) {
     }
 
 
-    _stepper->setMaxSpeed(pos > _runtime_info.position
-                          ? config().stepper_config.close_speed
-                          : config().stepper_config.open_speed);
+    _runtime_info.speed_steps = pos > _runtime_info.position
+                                ? config().stepper_config.close_speed
+                                : config().stepper_config.open_speed;
 
+    auto new_speed = _runtime_info.speed_steps * _runtime_info.speed;
+
+    _stepper->setMaxSpeed(std::max((int32_t) new_speed, STEPPER_MIN_SPEED));
     _stepper->setTarget(pos);
 }
 
@@ -232,8 +264,10 @@ void Application::emergency_stop() {
         _runtime_info.moving = false;
         _runtime_info.position_target = (float) _stepper->getCurrent() / config().stepper_calibration.open_position * 100.f;
 
-        NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
+
         _notify_changes();
+        NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
+        NotificationBus::get().notify_parameter_changed(this, _metadata->data.openned);
 
         change_state(AppState::STAND_BY);
     }
@@ -257,9 +291,8 @@ Future<void> Application::homing_async() {
     auto &cfg = config().stepper_config;
 
     return Future<void>::successful()
-        .then<bool>([this, &cfg](auto) {
+        .then<bool>([this, &cfg](auto &) {
             D_PRINT("Homing: Preparing");
-
 
             _stepper->enable();
             _stepper->reset();
@@ -270,7 +303,7 @@ Future<void> Application::homing_async() {
 
             return homing_move_async(false);
         })
-        .then<bool>([this, &cfg](auto) {
+        .then<bool>([this, &cfg](auto &) {
             D_PRINT("Homing: First step");
 
             // First homing step
@@ -314,14 +347,14 @@ Future<void> Application::homing_async() {
 
             _stepper->brake();
             return Future<void>::successful();
-        }).then<void>([this, &cfg](auto) {
+        }).then<void>([this, &cfg](auto &) {
             D_PRINT("Applying offset...");
 
             _stepper->setMaxSpeed(cfg.homing_speed);
             _stepper->setTarget(config().stepper_calibration.offset, RELATIVE);
 
             return homing_move_async(false);
-        }).then<void>([this](auto) {
+        }).then<void>([this](auto &) {
             _runtime_info.homed = true;
             _stepper->reset();
 
@@ -348,11 +381,11 @@ Future<bool> Application::homing_move_async(bool detect_endstop) {
         }
     }, APP_SERVICE_LOOP_INTERVAL);
 
-    //TODO: Promise destructed before timer fired up?
-    return Future{promise}.finally([this, timer_id](auto) {
+    return Future{promise}.finally([this, timer_id](auto &) {
         _bootstrap->timer().clear_interval(timer_id);
     });
 }
+
 Future<void> Application::homing_if_needed() {
     if (_runtime_info.homed) return Future<void>::successful();
     if (_state == AppState::HOMING) return Future<void>::errored();

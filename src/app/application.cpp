@@ -51,8 +51,11 @@ void Application::begin() {
         sys_config.stepper_pin_en
     );
 
+    _stepper->disable(); // Make sure stepper pins are disabled
+
     _stepper->setAcceleration(stepper_cfg.acceleration);
     _stepper->reverse(stepper_cfg.reverse);
+    _stepper->autoPower(true);
 
     _endstop = std::make_unique<Button>(sys_config.endstop_pin, sys_config.endstop_high_state);
     _endstop->set_hold_repeat(false);
@@ -262,7 +265,6 @@ void Application::move_to_step(int32_t pos) {
 void Application::emergency_stop() {
     _stepper->brake();
     _stepper->disable();
-
 
     if (_state != AppState::HOMING) {
         _runtime_info.moving = false;

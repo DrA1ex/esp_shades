@@ -5,6 +5,7 @@
 
 #include "app/config.h"
 #include "cmd.h"
+#include "parameter.h"
 
 DECLARE_META_TYPE(AppMetaProperty, PacketType)
 
@@ -60,7 +61,7 @@ DECLARE_META(DataConfigMeta, AppMetaProperty,
     MEMBER(Parameter<bool>, homed),
     MEMBER(Parameter<bool>, moving),
     MEMBER(Parameter<int32_t>, position),
-    MEMBER(Parameter<float>, position_target),
+    MEMBER(TargetPositionParameter, position_target),
 
     MEMBER(GeneratedParameter<bool>, openned)
 )

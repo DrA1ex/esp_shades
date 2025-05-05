@@ -19,8 +19,8 @@
 #define STEPPER_PIN_EN                          (8)
 
 
-#define ENDSTOP_PIN                              (20)
-#define ENDSTOP_HIGH_STATE                       (false)
+#define ENDSTOP_PIN                             (20)
+#define ENDSTOP_HIGH_STATE                      (false)
 
 #define TIME_ZONE                               (5.f)                   // GMT +5:00
 
@@ -28,6 +28,8 @@
 
 #define MQTT_CONNECTION_TIMEOUT                 (15000u)                // Connection attempt timeout to MQTT server
 #define MQTT_RECONNECT_TIMEOUT                  (5000u)                 // Time before new reconnection attempt to MQTT server
+
+#define MQTT_INVERT_POSITION                    (true)
 
 #define MQTT_PREFIX                             ""
 #define MQTT_TOPIC_OPEN                         MQTT_PREFIX "/open"

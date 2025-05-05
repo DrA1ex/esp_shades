@@ -34,7 +34,7 @@ void Application::begin() {
         _bootstrap_state_changed(sender, state, arg);
     });
 
-    _bootstrap->timer().add_interval([this](auto) { _notify_changes(); }, APP_STATE_NOTIFICATION_INTERVAL);
+    _bootstrap->timer().add_interval([this](auto) { _notify_periodic_status(); }, APP_STATE_NOTIFICATION_INTERVAL);
     _bootstrap->timer().add_interval([this](auto) { _move_notification_loop(); }, APP_STATE_MOVE_NOTIFICATION_INTERVAL);
 
     _bootstrap->event_state_changed().subscribe(this, BootstrapState::READY, [this](auto, auto, auto) {
@@ -128,10 +128,15 @@ void Application::_load() {
     _runtime_info.speed = speed_f;
 }
 
-void Application::_notify_changes() {
+void Application::_notify_periodic_status() {
     NotificationBus::get().notify_parameter_changed(this, _metadata->data.homed);
     NotificationBus::get().notify_parameter_changed(this, _metadata->data.moving);
     NotificationBus::get().notify_parameter_changed(this, _metadata->data.position);
+}
+
+void Application::_notify_position_status() {
+    NotificationBus::get().notify_parameter_changed(this, _metadata->data.openned);
+    NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
 }
 
 void Application::_on_bootstrap_ready() {
@@ -203,8 +208,7 @@ void Application::move_to(float value) {
     auto k = std::min(std::max(value, 0.0f), 100.f) / 100.f;
     _runtime_info.position_target = k * 100.f;
 
-    NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
-    NotificationBus::get().notify_parameter_changed(this, _metadata->data.openned);
+    _notify_position_status();
 
     move_to_step((int32_t) (config().stepper_calibration.open_position * k));
 }
@@ -240,7 +244,7 @@ void Application::move_to_step(int32_t pos) {
         _stepper->enable();
 
         _runtime_info.moving = true;
-        _notify_changes();
+        _notify_periodic_status();
         change_state(AppState::MOVING);
     }
 
@@ -265,9 +269,8 @@ void Application::emergency_stop() {
         _runtime_info.position_target = (float) _stepper->getCurrent() / config().stepper_calibration.open_position * 100.f;
 
 
-        _notify_changes();
-        NotificationBus::get().notify_parameter_changed(this, _metadata->data.position_target);
-        NotificationBus::get().notify_parameter_changed(this, _metadata->data.openned);
+        _notify_periodic_status();
+        _notify_position_status();
 
         change_state(AppState::STAND_BY);
     }
@@ -286,7 +289,7 @@ Future<void> Application::homing_async() {
     _runtime_info.homed = false;
     _runtime_info.moving = true;
 
-    _notify_changes();
+    _notify_periodic_status();
 
     auto &cfg = config().stepper_config;
 
@@ -365,7 +368,7 @@ Future<void> Application::homing_async() {
             _stepper->disable();
 
             _runtime_info.moving = false;
-            _notify_changes();
+            _notify_periodic_status();
 
             change_state(AppState::STAND_BY);
         });
@@ -422,7 +425,9 @@ void Application::_service_loop() {
 
         _runtime_info.moving = false;
         change_state(AppState::STAND_BY);
-        _notify_changes();
+
+        _notify_periodic_status();
+        _notify_position_status();
     }
 
     if (_runtime_info.homed && moving) {

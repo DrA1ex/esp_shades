@@ -67,7 +67,8 @@ private:
     void _setup();
     void _load();
 
-    void _notify_changes();
+    void _notify_periodic_status();
+    void _notify_position_status();
 
     void _on_bootstrap_ready();
     void _bootstrap_state_changed(void *sender, BootstrapState state, void *arg);

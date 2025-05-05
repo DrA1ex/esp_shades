@@ -64,10 +64,12 @@ pio run -t upload -e $PLATFORM-$ENV --upload-port "$ADDRESS"
 
 ## MQTT Protocol
 
-| Topic In *       		         | Topic Out *                   | Type      | Values	 | Comments                            |
-|-----------------------------|-------------------------------|-----------|---------|-------------------------------------|
-| `MQTT_TOPIC_POSITION`	   | `MQTT_OUT_TOPIC_POSITION`     | `float32` | 0..100  | Position, can switch to 0..100  	   |
-| `MQTT_TOPIC_NIGHT_MODE`	   | `MQTT_OUT_TOPIC_NIGHT_MODE` 	 | `uint8_t` | 0..1    | Night mode _state: ON (1) / OFF (0) |
+| Topic In *       		         | Topic Out *                   | Type      | Values	 | Comments                        |
+|------------------------------|-------------------------------|-----------|---------|-------------------------------------|
+| `MQTT_TOPIC_OPEN`	           | `MQTT_OUT_TOPIC_OPEN`         | `uint8_t` | 0..1    | Fully Closed (0) / Opened (1)       |
+| `MQTT_TOPIC_POSITION`	       | `MQTT_OUT_TOPIC_POSITION`     | `float32` | 0..100  | Open position (0) - Fully Closed / (100) - Fully Opened |
+| `MQTT_TOPIC_SPEED`	       | `MQTT_OUT_TOPIC_SPEED`        | `uint8_t` | 0..2    | Speed Mode: Slow (0) / Medium (1) / Fast (2) |
+| `MQTT_TOPIC_NIGHT_MODE`	   | `MQTT_OUT_TOPIC_NIGHT_MODE`   | `uint8_t` | 0..1    | Night mode state: ON (1) / OFF (0)  |
 
 \* Actual topic values declared in `constants.h`
 

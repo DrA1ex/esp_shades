@@ -42,7 +42,7 @@ void Application::begin() {
     });
 
     auto &stepper_cfg = config().stepper_config;
-    _stepper = std::make_unique<GStepper2<STEPPER_TYPE>>(
+    _stepper = std::make_unique<TimedStepper>(
         (uint16_t) stepper_cfg.resolution,
         sys_config.stepper_pin_1,
         sys_config.stepper_pin_2,
@@ -56,6 +56,11 @@ void Application::begin() {
     _stepper->setAcceleration(stepper_cfg.acceleration);
     _stepper->reverse(stepper_cfg.reverse);
     _stepper->autoPower(true);
+
+    if (!_stepper->beginTimer()) {
+        D_PRINT("Failed to initialize stepper hardware timer");
+        return;
+    }
 
     _endstop = std::make_unique<Button>(sys_config.endstop_pin, sys_config.endstop_high_state);
     _endstop->set_hold_repeat(false);
@@ -156,7 +161,6 @@ void Application::_on_bootstrap_ready() {
 }
 
 void Application::event_loop() {
-    _stepper->tick();
     _bootstrap->event_loop();
 }
 
